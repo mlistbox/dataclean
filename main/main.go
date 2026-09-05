@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"container/list"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"sort"
@@ -32,9 +33,13 @@ func NewQuestion(id int, head string, answer string, class string) *Question {
 	}
 }
 func (q *Question) ToString() string {
+	if q.Class == "判断题" {
+		return fmt.Sprintf("%d.%s;[%s](%s)\n", q.Id, q.Head, q.Class, q.Answer)
+	}
 	o := ""
-	for k, v := range q.Option {
-		o = o + fmt.Sprintf("%s:%s\n", k, v)
+	keys := sortMapK(q.Option)
+	for _, k := range *keys {
+		o = o + fmt.Sprintf("%s:%s\n", k, q.Option[k])
 	}
 	return fmt.Sprintf("%d.%s;[%s](%s)\n %s", q.Id, q.Head, q.Class, q.Answer, o)
 }
@@ -78,7 +83,7 @@ func getAnswerAndClass(s string, st rune, et rune) (string, string) {
 		a := extractWithIndex(s, st, et)
 		a = strings.Trim(a, " ")
 		if strings.Contains(a, "对") || strings.Contains(a, "错") {
-			return a, "判断题'"
+			return a, "判断题"
 		} else if re4.MatchString(a) && len(a) == 1 {
 			return a, "单选题"
 		} else if re4.MatchString(a) && len(a) > 1 {
@@ -237,7 +242,7 @@ type KV struct {
 	Value int
 }
 
-func sortMap(m map[string]int) (*[]KV, int) {
+func sortMapV(m map[string]int) (*[]KV, int) {
 
 	s := make([]KV, 0, len(m))
 	sum := 0
@@ -250,6 +255,15 @@ func sortMap(m map[string]int) (*[]KV, int) {
 		return s[i].Value > s[j].Value
 	})
 	return &s, sum
+}
+func sortMapK(m map[string]string) *[]string {
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys) // 字典序升序
+	return &keys
 }
 
 func main() {
@@ -317,9 +331,9 @@ func main() {
 	delete(questionanswer, "对")
 	delete(questionanswer, "错")
 
-	s1, sum1 := sortMap(oneanswer)
-	s2, sum2 := sortMap(questionanswer)
-	s3, sum3 := sortMap(yesorno)
+	s1, sum1 := sortMapV(oneanswer)
+	s2, sum2 := sortMapV(questionanswer)
+	s3, sum3 := sortMapV(yesorno)
 
 	fmt.Printf("sum:%d;\n", sum)
 
@@ -343,17 +357,40 @@ func main() {
 		fmt.Printf("判断题答案其中:%s: %d 个; 概率 : %.2f\n", item.Key, item.Value, float32(item.Value)/float32(sum3))
 	}
 
+	file, err := os.Create("Simple.txt")
+	if err != nil {
+		fmt.Errorf("err:%v", err)
+		return
+	}
+	defer file.Close() // 确保文件描述符释放
+
+	// 创建缓冲写入器
+	writer := bufio.NewWriter(file)
+	sum = 0
 	for e := ls.Front(); e != nil; e = e.Next() {
 		if q, ok := e.Value.(*Question); ok {
 			if q.Answer != "ABCD" && q.Class == "多选题" {
-				fmt.Printf(q.ToString())
+				_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
+				sum++
 			}
 			if q.Answer != "C" && q.Class == "单选题" {
-				fmt.Printf(q.ToString())
+				_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
+				sum++
 			}
+
 			if q.Answer == "错" && q.Class == "判断题" {
-				fmt.Printf(q.ToString())
+				_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
+				sum++
+			}
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
 	}
+	// 【关键步骤】必须调用 Flush，否则缓冲区剩余数据会丢失
+	err = writer.Flush()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("写入精简版题库:%d;条\n", sum)
 }
