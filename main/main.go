@@ -35,6 +35,8 @@ func NewQuestion(id int, head string, answer string, class string) *Question {
 		Option: make(map[string]string),
 	}
 }
+
+/*
 func (q *Question) ToString() string {
 	if q.Class == "判断题" {
 		return fmt.Sprintf("%s|%s|对|错|||||||%s|||\n", q.Head, q.Class, q.Answer)
@@ -42,20 +44,19 @@ func (q *Question) ToString() string {
 
 	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|||\n", q.Head, q.Class, q.Option["A"], q.Option["B"], q.Option["C"], q.Option["D"], q.Option["E"], q.Option["F"], q.Option["G"], q.Option["H"], q.Answer)
 }
+*/
 
-/*
 func (q *Question) ToString() string {
 	if q.Class == "判断题" {
-		return fmt.Sprintf("%s;%s;对;错;;;;;;;%s;;;\n", q.Head, q.Class, q.Answer)
+		return fmt.Sprintf("%d.%s(%s)\n答案: %s\n解析:\n", q.Id, q.Head, q.Answer, q.Answer)
 	}
 	o := ""
 	keys := sortMapK(q.Option)
 	for _, k := range *keys {
-		o = o + fmt.Sprintf("%s:%s\n", k, q.Option[k])
+		o = o + fmt.Sprintf("%s.%s\n", k, q.Option[k])
 	}
-	return fmt.Sprintf("%d.%s;[%s](%s)\n %s", q.Id, q.Head, q.Class, q.Answer, o)
+	return fmt.Sprintf("%d.%s(%s)\n%s 答案: %s\n解析:\n", q.Id, q.Head, q.Answer, o, q.Answer)
 }
-*/
 
 func getFirstCharRange(s string) string {
 	for _, r := range s {
@@ -296,7 +297,7 @@ func main() {
 		fmt.Print("invalid regex1: %w", err)
 	}
 
-	re2, err = regexp.Compile(`[A-Z]\.[^ABCD]*`)
+	re2, err = regexp.Compile(`[A-Z]\.[^ABCDEF]*`)
 	if err != nil {
 		fmt.Print("invalid regex2: %w", err)
 	}
