@@ -16,11 +16,14 @@ var (
 )
 
 type Question struct {
-	Id     int               `json:"Id"`
-	Head   string            `json:"Head"`
-	Answer string            `json:"Answer"`
-	Class  string            `json:"Class"`
-	Option map[string]string `json:"Option"`
+	Id       int               `json:"Id"`
+	Head     string            `json:"Head"`
+	Answer   string            `json:"Answer"`
+	Class    string            `json:"Class"`
+	Option   map[string]string `json:"Option"`
+	OkTimes  int               `json:"OkTimes"`
+	ErrTimee int               `json:"ErrTime"`
+	Location bool              `json:"Location"`
 }
 
 func NewQuestion(id int, head string, answer string, class string) *Question {
@@ -34,7 +37,16 @@ func NewQuestion(id int, head string, answer string, class string) *Question {
 }
 func (q *Question) ToString() string {
 	if q.Class == "判断题" {
-		return fmt.Sprintf("%d.%s;[%s](%s)\n", q.Id, q.Head, q.Class, q.Answer)
+		return fmt.Sprintf("%s|%s|对|错|||||||%s|||\n", q.Head, q.Class, q.Answer)
+	}
+
+	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|||\n", q.Head, q.Class, q.Option["A"], q.Option["B"], q.Option["C"], q.Option["D"], q.Option["E"], q.Option["F"], q.Option["G"], q.Option["H"], q.Answer)
+}
+
+/*
+func (q *Question) ToString() string {
+	if q.Class == "判断题" {
+		return fmt.Sprintf("%s;%s;对;错;;;;;;;%s;;;\n", q.Head, q.Class, q.Answer)
 	}
 	o := ""
 	keys := sortMapK(q.Option)
@@ -43,6 +55,7 @@ func (q *Question) ToString() string {
 	}
 	return fmt.Sprintf("%d.%s;[%s](%s)\n %s", q.Id, q.Head, q.Class, q.Answer, o)
 }
+*/
 
 func getFirstCharRange(s string) string {
 	for _, r := range s {
@@ -197,15 +210,11 @@ func SearchFileByLine(ls *list.List, filename string) error {
 			// matches := re.FindStringSubmatch(line)
 			// if len(matches) > 1 { fmt.Println("Captured:", matches) }
 		}
-		if re2.MatchString(line) {
-			if ev, ok := e.Value.(*Question); ok {
-				StringToMap(ev, line, re2)
-			}
-		}
+
 		if re3.MatchString(line) && !strings.Contains(line, "]") {
 			line = deleteredundant(line, "(", ")")
 			strs := re3.FindAllString(line, -1)
-			for _, s := range strs {
+			for j := 0; j < len(strs); j++ {
 
 				/*
 					a := extractWithIndex(s, '(', ')')
@@ -222,10 +231,21 @@ func SearchFileByLine(ls *list.List, filename string) error {
 						ls.PushBack(NewQuestion(questionID, s[strings.Index(s, ".")+1:strings.LastIndex(s, "(")], a, "未知"))
 					}
 				*/
-				a, c := getAnswerAndClass(s, '(', ')')
+				a, c := getAnswerAndClass(strs[j], '(', ')')
 				questionID++
-				ls.PushBack(NewQuestion(questionID, s[strings.Index(s, ".")+1:strings.LastIndex(s, "(")], a, c))
+				e = ls.PushBack(NewQuestion(questionID, strs[j][strings.Index(strs[j], ".")+1:strings.LastIndex(strs[j], "(")], a, c))
+				line = strings.ReplaceAll(line, strs[j], "")
+				if j < len(strs)-1 {
+					//line[0:strings.Index(line,strs[j+1])]
+					StringToMap(e.Value.(*Question), line[0:strings.Index(line, strs[j+1])], re2)
+				}
+				StringToMap(e.Value.(*Question), line, re2)
 
+			}
+		}
+		if re2.MatchString(line) {
+			if ev, ok := e.Value.(*Question); ok {
+				StringToMap(ev, line, re2)
 			}
 		}
 	}
@@ -276,7 +296,7 @@ func main() {
 		fmt.Print("invalid regex1: %w", err)
 	}
 
-	re2, err = regexp.Compile(`[A-Z]\.[^ ]*`)
+	re2, err = regexp.Compile(`[A-Z]\.[^ABCD]*`)
 	if err != nil {
 		fmt.Print("invalid regex2: %w", err)
 	}
@@ -357,7 +377,7 @@ func main() {
 		fmt.Printf("判断题答案其中:%s: %d 个; 概率 : %.2f\n", item.Key, item.Value, float32(item.Value)/float32(sum3))
 	}
 
-	file, err := os.Create("Simple.txt")
+	file, err := os.Create("Simple2.txt")
 	if err != nil {
 		fmt.Errorf("err:%v", err)
 		return
@@ -367,6 +387,7 @@ func main() {
 	// 创建缓冲写入器
 	writer := bufio.NewWriter(file)
 	sum = 0
+
 	for e := ls.Front(); e != nil; e = e.Next() {
 		if q, ok := e.Value.(*Question); ok {
 			if q.Answer != "ABCD" && q.Class == "多选题" {
@@ -387,6 +408,31 @@ func main() {
 			}
 		}
 	}
+	/*
+		for e := ls.Front(); e != nil; e = e.Next() {
+			if q, ok := e.Value.(*Question); ok {
+				if q.Answer != "ABCD" && q.Class == "多选题" {
+					b, _ := json.Marshal(q)
+					_, err = writer.WriteString(string(b))
+					sum++
+				}
+				if q.Answer != "C" && q.Class == "单选题" {
+					b, _ := json.Marshal(q)
+					_, err = writer.WriteString(string(b))
+					sum++
+				}
+
+				if q.Answer == "错" && q.Class == "判断题" {
+					b, _ := json.Marshal(q)
+					_, err = writer.WriteString(string(b))
+					sum++
+				}
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+		}
+	*/
 	// 【关键步骤】必须调用 Flush，否则缓冲区剩余数据会丢失
 	err = writer.Flush()
 	if err != nil {
