@@ -312,7 +312,7 @@ func main() {
 		fmt.Print("invalid regex4: %w", err)
 	}
 
-	err = SearchFileByLine(ls, "F:/go/dataclean/main/Source.txt")
+	err = SearchFileByLine(ls, "F:/go/dataclean/main/Source1.txt")
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
@@ -378,7 +378,7 @@ func main() {
 		fmt.Printf("判断题答案其中:%s: %d 个; 概率 : %.2f\n", item.Key, item.Value, float32(item.Value)/float32(sum3))
 	}
 
-	file, err := os.Create("Simple2.txt")
+	file, err := os.Create("Completely.txt")
 	if err != nil {
 		fmt.Errorf("err:%v", err)
 		return
@@ -388,27 +388,41 @@ func main() {
 	// 创建缓冲写入器
 	writer := bufio.NewWriter(file)
 	sum = 0
+	/*
+		for e := ls.Front(); e != nil; e = e.Next() {
+			if q, ok := e.Value.(*Question); ok {
+				if q.Answer != "ABCD" && q.Class == "多选题" {
+					_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
+					sum++
+				}
+				if q.Answer != "C" && q.Class == "单选题" {
+					_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
+					sum++
+				}
 
+				if q.Answer == "错" && q.Class == "判断题" {
+					_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
+					sum++
+				}
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+		}
+	*/
 	for e := ls.Front(); e != nil; e = e.Next() {
 		if q, ok := e.Value.(*Question); ok {
-			if q.Answer != "ABCD" && q.Class == "多选题" {
-				_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
-				sum++
-			}
-			if q.Answer != "C" && q.Class == "单选题" {
-				_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
-				sum++
-			}
 
-			if q.Answer == "错" && q.Class == "判断题" {
-				_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
-				sum++
-			}
+			_, err = writer.WriteString(fmt.Sprintf("%s", q.ToString()))
 			if err != nil {
 				log.Fatal(err)
 			}
+			sum++
+
 		}
+
 	}
+
 	/*
 		for e := ls.Front(); e != nil; e = e.Next() {
 			if q, ok := e.Value.(*Question); ok {
